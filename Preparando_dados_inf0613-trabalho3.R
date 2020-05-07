@@ -1,5 +1,6 @@
 summary(carros)
 dim(carros)
+colSums(carros == '?')
 # lidando com valores inexistentes
 # normalized_losses
 carros$normalized_losses<-as.numeric(levels(carros$normalized_losses))[carros$normalized_losses]
