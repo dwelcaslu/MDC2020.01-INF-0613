@@ -22,29 +22,59 @@ library(fpc)
 library(cluster)
 library(NbClust)
 library(factoextra)
-
-# Configurando o diretÃ³rio de trabalho:
-setwd("C:\\MDC 2020\\INF-0613 - Aprendizado de Máquina não supervisionado\\Trabalho 3") # configure o caminho antes de descomentar essa linha
-
+source("preprocessing.R")
 
 ############ Carregando os dados ############
 carros <- read.csv("imports-85.data", sep=',', header=FALSE)
+names(carros) <- c("symboling", "normalized_losses", "make", "fuel_type", "aspiration", "num_of_doors",
+                   "body_style", "drive_wheels", "engine_location", "wheel_base", "length", "width", "height",
+                   "curb_weight", "engine_type", "num_of_cylinders", "engine_size", "fuel_system", "bore",
+                   "stroke", "compression_rate", "horsepower", "peak_rpm", "city_mpg", "highway_mpg", "price")
 summary(carros)
 dim(carros)
-names(carros) <- c("symboling","normalized_losses","make","fuel_type","aspiration","num_of_doors","body_style","drive_wheels","engine_location","wheel_base","length","width","height","curb_weight","engine_type","num_of_cylinders","engine_size","fuel_system","bore","stroke","compression_rate","horsepower","peak_rpm","city_mpg","highway_mpg","price")
 
 
 ############ Atividade 1: Análise e Preparação dos Dados ############
-source("Preparando_dados_inf0613-trabalho3.R")
-correlation <- cor(carros[4:55]); 
-correlation
+# Identificando a coluna que contém o target:
+target_col = 1
+# Identificando as colunas que não são features:
+nonfeat_cols = c(1, 3)
+
+### Tratando os dados incompletos:
+carros <- prep_incomplete_data(carros)
+### Aplicando one-hot enconding nas features categóricas:
+carros <- encode_features(carros)
+### Normalizando as features:
+carros <- min_max_normalize(carros, nonfeat_cols)
+summary(carros)
+
+# Analisando a variância das features:
+variances_matrix <- var(carros[-nonfeat_cols])
+for (name in row.names(variances_matrix)){
+  if (variances_matrix[name, name] > 0.05){
+    print(paste(name, variances_matrix[name, name]))
+  }
+}
+
+# Print the correlation between features:
+correlation <- cor(carros[-3]); correlation
+# Analisando as correlações das as features e a saída:
+max_cor_y <- sort(correlation[correlation[, target_col] < 1, target_col], decreasing=TRUE); print(max_cor_y)
+# Analisando as correlações entre as features:
+feat_cor <- correlation[-target_col, -target_col]
+for (n in names(max_cor_y)){
+  selected_vals <- feat_cor[abs(feat_cor[, n]) < 0.999, n]
+  sqr_cor <- selected_vals ^ 2
+  max_cor <- selected_vals[sqr_cor == max(sqr_cor)][1]
+  max_cor_var <- names(selected_vals)[selected_vals == max_cor]
+  print(paste(n, '- max feat_cor (abs.):', round(max_cor, 6), '- with', max_cor_var))
+}
 
 
 ############ Atividade 2: Agrupamento com K-means ############
 ### Gráfico Elbow Curve
-graf_elbow_curve <- function(df_carros) {
+graf_elbow_curve <- function(df_carros){
   wss <- (nrow(df_carros)-1)*sum(apply(df_carros,2,var))
- 
   for (i in 2:30) wss[i] <- sum(kmeans(df_carros,centers=i)$withinss)
   plot(1:30, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares",
@@ -53,7 +83,7 @@ graf_elbow_curve <- function(df_carros) {
 }
 
 # Retirando apenas as features symboling e make
-carros_1 <- carros[,-c(1,3)]
+carros_1 <- carros[, -nonfeat_cols]
 dim(carros_1)
 graf_elbow_curve(carros_1)
 summary(carros_1)
@@ -79,9 +109,10 @@ fviz_nbclust(carros_1, kmeans , method ="silhouette", k.max=30)
 fviz_nbclust(carros_2, kmeans , method ="silhouette", k.max=30)
 fviz_nbclust(carros_3, kmeans , method ="silhouette", k.max=30)
 fviz_nbclust(carros_4, kmeans , method ="silhouette", k.max=30)
-  
+
+
 ############ Atividade 3: Agrupamento com DBscan ############  
-db_carros_1<-dbscan::dbscan (carros_1 , eps = 0.15 , minPts =5)
+db_carros_1 <- dbscan::dbscan (carros_1 , eps = 1.5 , minPts=2)
 print(db_carros_1)
 
 dbscan :: kNNdistplot (carros_1 , k =20)
@@ -102,16 +133,17 @@ fviz_cluster(db_carros_2, data=carros_2,stand=FALSE, ellipse=FALSE, show.clust.c
 db_carros_3<-dbscan::dbscan (carros_3 , eps = 0.15 , minPts =5)
 print(db_carros_3)
 
-dbscan :: kNNdistplot (carros_3 , k =20)
+dbscan :: kNNdistplot(carros_3 , k=20)
 
 fviz_cluster(db_carros_3, data=carros_3,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
 ###################
-db_carros_4<-dbscan::dbscan (carros_4 , eps = 0.15 , minPts =5)
+db_carros_4 <- dbscan::dbscan(carros_4 , eps = 0.15 , minPts =5)
 print(db_carros_4)
 
 dbscan :: kNNdistplot (carros_4 , k =20)
 
 fviz_cluster(db_carros_4, data=carros_4,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
+
