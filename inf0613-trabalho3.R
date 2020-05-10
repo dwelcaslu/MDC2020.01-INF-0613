@@ -50,9 +50,11 @@ summary(carros)
 
 # Analisando a variância das features:
 variances_matrix <- var(carros[-nonfeat_cols])
+features_var <- NULL
 for (name in row.names(variances_matrix)){
   if (variances_matrix[name, name] > 0.05){
     print(paste(name, variances_matrix[name, name]))
+    features_var <- c(features_var, name)
   }
 }
 
@@ -60,6 +62,8 @@ for (name in row.names(variances_matrix)){
 correlation <- cor(carros[-3]); correlation
 # Analisando as correlações das as features e a saída:
 max_cor_y <- sort(correlation[correlation[, target_col] < 1, target_col], decreasing=TRUE); print(max_cor_y)
+features_cor_y <- names(max_cor_y[abs(max_cor_y) > 0.15])
+
 # Analisando as correlações entre as features:
 feat_cor <- correlation[-target_col, -target_col]
 for (n in names(max_cor_y)){
@@ -69,6 +73,11 @@ for (n in names(max_cor_y)){
   max_cor_var <- names(selected_vals)[selected_vals == max_cor]
   print(paste(n, '- max feat_cor (abs.):', round(max_cor, 6), '- with', max_cor_var))
 }
+
+# Selecionando as colunas:
+carros_new <- carros[, features_cor_y]
+carros_new$four_doors <- NULL
+summary(carros_new)
 
 
 ############ Atividade 2: Agrupamento com K-means ############
@@ -83,67 +92,65 @@ graf_elbow_curve <- function(df_carros){
 }
 
 # Retirando apenas as features symboling e make
-carros_1 <- carros[, -nonfeat_cols]
-dim(carros_1)
-graf_elbow_curve(carros_1)
-summary(carros_1)
-
-# Retirando tambem as features wheel_base, length, width e height
-carros_2 <- carros[,-c(1,3,4,5,6,7)]
-dim(carros_2)
-graf_elbow_curve(carros_2) 
-
-# Retirando as features symboling, make e wheel_base
-carros_3 <- carros[,-c(1,3,4)]
-dim(carros_3)
-graf_elbow_curve(carros_3)
-
-# Retirando as features de 1 a 11
-carros_4 <- carros[,-c(1:11)]
-dim(carros_4)
-graf_elbow_curve(carros_4)
-
+graf_elbow_curve(carros_new)
 ### Gráfico da Silhueta
-
-fviz_nbclust(carros_1, kmeans , method ="silhouette", k.max=30)
-fviz_nbclust(carros_2, kmeans , method ="silhouette", k.max=30)
-fviz_nbclust(carros_3, kmeans , method ="silhouette", k.max=30)
-fviz_nbclust(carros_4, kmeans , method ="silhouette", k.max=30)
+fviz_nbclust(carros_new, kmeans , method ="silhouette", k.max=30)
 
 
-############ Atividade 3: Agrupamento com DBscan ############  
-db_carros_1 <- dbscan::dbscan (carros_1 , eps = 1.5 , minPts=2)
+############ Atividade 3: Agrupamento com DBscan ############
+## Análise do Raio da Vizinhança de Pontos:
+db_carros_1 <- dbscan::dbscan (carros_new , eps = 0.5 , minPts=5)
 print(db_carros_1)
 
-dbscan :: kNNdistplot (carros_1 , k =20)
+dbscan :: kNNdistplot (carros_new , k=20)
 
-fviz_cluster(db_carros_1, data=carros_1,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+fviz_cluster(db_carros_1, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
 ###################
-db_carros_2<-dbscan::dbscan (carros_2 , eps = 0.15 , minPts =5)
+db_carros_2 <- dbscan::dbscan (carros_new , eps = 0.8 , minPts=5)
 print(db_carros_2)
 
-dbscan :: kNNdistplot (carros_2 , k =20)
+dbscan :: kNNdistplot (carros_new , k=20)
 
-fviz_cluster(db_carros_2, data=carros_2,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+fviz_cluster(db_carros_2, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
 ###################
-db_carros_3<-dbscan::dbscan (carros_3 , eps = 0.15 , minPts =5)
+db_carros_3 <- dbscan::dbscan (carros_new , eps = 1 , minPts=5)
 print(db_carros_3)
 
-dbscan :: kNNdistplot(carros_3 , k=20)
+dbscan :: kNNdistplot (carros_new , k=20)
 
-fviz_cluster(db_carros_3, data=carros_3,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+fviz_cluster(db_carros_3, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+             geom="point", palette="jco", ggtheme=theme_classic())
+
+
+## Determinando Ruídos::
+###################
+db_carros_4 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts=5)
+print(db_carros_4)
+
+dbscan :: kNNdistplot (carros_new , k =20)
+
+fviz_cluster(db_carros_4, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
 ###################
-db_carros_4 <- dbscan::dbscan(carros_4 , eps = 0.15 , minPts =5)
-print(db_carros_4)
+db_carros_5 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts=8)
+print(db_carros_5)
 
-dbscan :: kNNdistplot (carros_4 , k =20)
+dbscan :: kNNdistplot (carros_new , k =20)
 
-fviz_cluster(db_carros_4, data=carros_4,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+fviz_cluster(db_carros_5, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
+             geom="point", palette="jco", ggtheme=theme_classic())
+
+###################
+db_carros_6 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts =10)
+print(db_carros_6)
+
+dbscan :: kNNdistplot (carros_new , k =20)
+
+fviz_cluster(db_carros_6, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
