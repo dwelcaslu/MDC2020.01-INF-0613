@@ -86,7 +86,7 @@ summary(carros_new)
 ### Gráfico Elbow Curve
 graf_elbow_curve <- function(df_carros){
   wss <- (nrow(df_carros)-1)*sum(apply(df_carros,2,var))
-  for (i in 2:30) wss[i] <- sum(kmeans(df_carros, centers=i, nstart=10)$withinss)
+  for (i in 2:30) wss[i] <- sum(kmeans(df_carros, centers=i, nstart=25)$withinss)
   plot(1:30, wss, type="b", xlab="Number of Clusters",
        ylab="Within groups sum of squares",
        main="Assessing the Optimal Number of Clusters with the Elbow Method",
@@ -102,7 +102,7 @@ fviz_nbclust(carros_new, kmeans , method ="silhouette", k.max=30)
 ###################
 ### Versão final K-means:
 ###################
-carros$cluster <- kmeans(carros_new, centers=6, nstart=10)$cluster
+carros$cluster <- kmeans(carros_new, centers=6, nstart=25)$cluster
 for (c in sort(unique(carros$cluster))){
   select <- carros[carros$cluster == c, ]
   print(paste("cluster:", c, " - symboling(s):"))
@@ -111,35 +111,35 @@ for (c in sort(unique(carros$cluster))){
 
 ############ Atividade 3: Agrupamento com DBscan ############
 ## Análise do Raio da Vizinhança de Pontos:
-db_carros_1 <- dbscan::dbscan (carros_new , eps = 0.5 , minPts=5)
+db_carros_1 <- dbscan::dbscan(carros_new , eps=0.5 , minPts=5)
 print(db_carros_1)
 fviz_cluster(db_carros_1, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 dbscan :: kNNdistplot(carros_new , k=20)
 ###################
-db_carros_2 <- dbscan::dbscan (carros_new , eps = 08 , minPts=5)
+db_carros_2 <- dbscan::dbscan(carros_new , eps=1 , minPts=5)
 print(db_carros_2)
 fviz_cluster(db_carros_2, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 ###################
-db_carros_3 <- dbscan::dbscan (carros_new , eps = 1 , minPts=5)
+db_carros_3 <- dbscan::dbscan(carros_new , eps=1.5 , minPts=5)
 print(db_carros_3)
 fviz_cluster(db_carros_3, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 
 ## Determinando Ruídos::
 ###################
-db_carros_4 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts=5)
+db_carros_4 <- dbscan::dbscan(carros_new , eps=0.8 , minPts=2)
 print(db_carros_4)
 fviz_cluster(db_carros_4, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 ###################
-db_carros_5 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts=8)
+db_carros_5 <- dbscan::dbscan(carros_new , eps=0.8 , minPts=5)
 print(db_carros_5)
 fviz_cluster(db_carros_5, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
 ###################
-db_carros_6 <- dbscan::dbscan(carros_new , eps = 0.8 , minPts =10)
+db_carros_6 <- dbscan::dbscan(carros_new , eps=0.8 , minPts=10)
 print(db_carros_6)
 fviz_cluster(db_carros_6, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
              geom="point", palette="jco", ggtheme=theme_classic())
@@ -147,14 +147,16 @@ fviz_cluster(db_carros_6, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust
 ###################
 ### Versão final DBSCAN:
 ###################
-db_carros_final <- dbscan::dbscan (carros_new , eps = 0.7 , minPts=3)
+db_carros_final <- dbscan::dbscan (carros_new, eps=0.7, minPts=3)
 print(db_carros_final)
-fviz_cluster(db_carros_final, data=carros_new,stand=FALSE, ellipse=FALSE, show.clust.cent=FALSE,
-             geom="point", palette="jco", ggtheme=theme_classic())
-
-carros$cluster <- db_carros_final$cluster
+carros$cluster <- db_carros_final$cluster; carros$cluster
 for (c in sort(unique(carros$cluster))){
   select <- carros[carros$cluster == c, ]
   print(paste("cluster:", c, " - symboling(s):"))
   print(sort(unique(select$symboling)))
-}
+} 
+
+for (c in sort(unique(carros$cluster))){
+  select <- carros[carros$cluster == c, ]
+  print(paste("cluster:", c, " - maker(s):", length(unique(select$make))))
+} 
